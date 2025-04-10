@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Context Dictionary</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body class="context-dict-extension">
+    <div class="container">
+        <!-- Header with logo -->
+        <header class="header">
+            <div class="logo">
+                <img src="images/icon48.png" alt="Logo" class="logo-img">
+                <span>Context Dictionary</span>
+                <span class="version">v1.0.0</span>
+            </div>
+        </header>
+
+        <!-- Main menu list -->
+        <div class="menu-list">
+            <div id="api-settings" class="menu-item">
+                <span class="menu-icon material-icons">settings</span>
+                <span class="menu-text">API Settings</span>
+            </div>
+            <div id="about" class="menu-item">
+                <span class="menu-icon material-icons">info</span>
+                <span class="menu-text">About</span>
+            </div>
+        </div>
+
+        <!-- API Settings panel -->
+        <div id="settings-panel" class="panel hidden">
+            <div class="panel-header">
+                <button class="back-button material-icons">arrow_back</button>
+                <h2 class="panel-title">API Settings</h2>
+            </div>
+
+            <div class="panel-content">
+                <div class="form-group">
+                    <label for="api-endpoint">API Endpoint</label>
+                    <input type="text" id="api-endpoint" placeholder="Enter API endpoint">
+                </div>
+                <div class="form-group">
+                    <label for="api-key">API Key</label>
+                    <input type="password" id="api-key" placeholder="Enter API key">
+                </div>
+                <div class="form-group model-group">
+                    <label for="model">Model</label>
+                    <div class="model-input-group">
+                        <select id="model">
+                            <option value="ep-20250317233104-r57xr">EP-2025 (Recommended)</option>
+                            <option value="deepseek-r1">deepseek-r1</option>
+                            <option value="custom">Custom...</option>
+                        </select>
+                        <input type="text" id="custom-model" class="hidden" placeholder="Enter model ID">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button id="save-api-settings" class="primary">Save</button>
+                    <button id="reset-api-settings" class="secondary">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- About panel -->
+        <div id="about-panel" class="panel hidden">
+            <div class="panel-header">
+                <button class="back-button material-icons">arrow_back</button>
+                <h2 class="panel-title">About</h2>
+            </div>
+
+            <div class="panel-content">
+                <!-- Features -->
+                <div class="about-section">
+                    <h3>Features</h3>
+                    <p>Context Dictionary is a powerful browser extension that helps you understand text in any language. Simply select text to look up its meaning or enable real-time translation for seamless reading.</p>
+                    <ul>
+                        <li>Look up word definitions with context</li>
+                        <li>Get accurate translations based on context</li>
+                        <li>Support for multiple languages</li>
+                        <li>Provides related learning resources</li>
+                        <li>Clean and intuitive popup interface</li>
+                    </ul>
+                </div>
+
+                <!-- How to Use -->
+                <div class="about-section">
+                    <h3>How to Use</h3>
+                    <p>1. Configure API settings in the popup</p>
+                    <p>2. Select any text on a webpage</p>
+                    <p>3. Definition will appear automatically</p>
+                    <p>4. Or right-click selected text and choose "Get definition"
+                </div>
+
+                <!-- Keyboard Shortcuts -->
+                <div class="about-section">
+                    <h3>Keyboard Shortcuts</h3>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Alt + D</span>
+                        <span class="shortcut-desc">Look up selected text</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Alt + T</span>
+                        <span class="shortcut-desc">Toggle real-time translation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

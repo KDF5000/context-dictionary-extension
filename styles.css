@@ -1,0 +1,844 @@
+/* Extension popup styles */
+#context-dict-popup {
+    position: fixed;
+    z-index: 10000;
+    width: min(90vw, 520px);
+    min-height: 120px;
+    /* max-height: 75vh; */
+    margin: 0;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #fff;
+    color: #333;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 标题样式 */
+#context-dict-popup .word-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+}
+
+/* Markdown 内容样式 */
+#context-dict-popup .markdown-content {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #2c3e50;
+    padding-right: 4px;
+    overflow-y: auto;
+    flex: 1;
+    overscroll-behavior: contain;
+    margin-right: -16px;
+    padding-right: 16px;
+}
+
+/* 滚动条样式 */
+#context-dict-popup .markdown-content {
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+/* Webkit 浏览器 */
+#context-dict-popup .markdown-content::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+#context-dict-popup .markdown-content:hover::-webkit-scrollbar {
+    opacity: 1;
+}
+
+#context-dict-popup .markdown-content::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+}
+
+#context-dict-popup .markdown-content::-webkit-scrollbar-thumb {
+    background-color: rgba(155, 155, 155, 0.5);
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+#context-dict-popup .markdown-content::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(155, 155, 155, 0.7);
+}
+
+/* 滚动区域样式 */
+#context-dict-popup .markdown-content {
+    padding-right: 12px; /* 为滚动条预留空间 */
+    margin-right: -12px; /* 抵消padding带来的额外宽度 */
+}
+
+/* 思考过程区域样式 */
+#context-dict-popup .reasoning-section {
+    margin: 12px 0;
+    border-left: 3px solid #e8e8e8;
+    padding: 6px 16px;
+    color: #666;
+    font-size: 14px;
+    position: relative;
+    transition: all 0.3s ease-out;
+    line-height: 1.6;
+    background: linear-gradient(to right, rgba(249,250,251,0.5), transparent);
+}
+
+#context-dict-popup .toggle-reasoning {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease-out;
+    border: none;
+    background: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#context-dict-popup .toggle-reasoning:hover {
+    opacity: 1;
+}
+
+#context-dict-popup .toggle-reasoning:before,
+#context-dict-popup .toggle-reasoning:after {
+    content: '';
+    position: absolute;
+    background-color: #666;
+    transition: transform 0.3s ease;
+}
+
+#context-dict-popup .toggle-reasoning:before {
+    width: 2px;
+    height: 12px;
+}
+
+#context-dict-popup .toggle-reasoning:after {
+    width: 12px;
+    height: 2px;
+}
+
+#context-dict-popup .reasoning-section.collapsed .toggle-reasoning:before {
+    transform: rotate(-90deg);
+}
+
+#context-dict-popup .reasoning-section {
+    padding-right: 40px; /* 为按钮留出空间 */
+}
+
+#context-dict-popup .reasoning-section.collapsed {
+    max-height: 32px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+#context-dict-popup .reasoning-section.collapsed:before {
+    content: '展开思考过程';
+    opacity: 1;
+}
+
+#context-dict-popup .markdown-content p {
+    margin: 0 0 12px 0;
+}
+
+#context-dict-popup .markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+#context-dict-popup .markdown-content h1,
+#context-dict-popup .markdown-content h2,
+#context-dict-popup .markdown-content h3,
+#context-dict-popup .markdown-content h4 {
+    margin: 20px 0 12px 0;
+    color: #1a1a1a;
+    line-height: 1.3;
+}
+
+#context-dict-popup .markdown-content h1:first-child,
+#context-dict-popup .markdown-content h2:first-child,
+#context-dict-popup .markdown-content h3:first-child,
+#context-dict-popup .markdown-content h4:first-child {
+    margin-top: 0;
+}
+
+#context-dict-popup .markdown-content h1 { font-size: 24px; }
+#context-dict-popup .markdown-content h2 { font-size: 20px; }
+#context-dict-popup .markdown-content h3 { font-size: 18px; }
+#context-dict-popup .markdown-content h4 { font-size: 16px; }
+
+#context-dict-popup .markdown-content ul,
+#context-dict-popup .markdown-content ol {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+#context-dict-popup .markdown-content li {
+    margin: 6px 0;
+}
+
+#context-dict-popup .markdown-content li:first-child {
+    margin-top: 0;
+}
+
+#context-dict-popup .markdown-content li:last-child {
+    margin-bottom: 0;
+}
+
+#context-dict-popup .markdown-content code {
+    background-color: #f5f7f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+    font-size: 14px;
+}
+
+#context-dict-popup .markdown-content pre {
+    background-color: #f5f7f9;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+#context-dict-popup .markdown-content pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+#context-dict-popup .markdown-content blockquote {
+    margin: 16px 0;
+    padding: 0 16px;
+    border-left: 4px solid #ddd;
+    color: #666;
+}
+
+/* 模型选择样式 */
+.model-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.model-input-group select {
+    flex: 1;
+}
+
+.model-input-group input {
+    flex: 1;
+    transition: all 0.3s ease;
+}
+
+.model-input-group input.hidden {
+    display: none;
+}
+
+/* 加载状态样式 */
+#context-dict-popup .loading-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+}
+
+#context-dict-popup .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+#context-dict-popup .loading-text {
+    font-size: 14px;
+    color: #666;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#context-dict-popup .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    position: sticky;
+    top: -20px;
+    background: #fff;
+    margin-top: -20px;
+    padding-top: 20px;
+    z-index: 1;
+}
+
+#context-dict-popup .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+#context-dict-popup .close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+#context-dict-popup .close-btn .material-icons {
+    font-size: 20px;
+    color: #666;
+}
+
+/* Styles for the extension popup page */
+body.context-dict-extension {
+    width: 280px;
+    min-height: 380px;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #fff;
+    color: #333;
+}
+
+body.context-dict-extension .container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header styles */
+body.context-dict-extension .header {
+    padding: 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+}
+
+body.context-dict-extension .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+body.context-dict-extension .logo-img {
+    width: 32px;
+    height: 32px;
+}
+
+body.context-dict-extension .version {
+    color: #999;
+    font-size: 12px;
+}
+
+/* Menu list styles */
+body.context-dict-extension .menu-list {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+body.context-dict-extension .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+body.context-dict-extension .menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+body.context-dict-extension .menu-icon {
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+    margin-right: 12px;
+}
+
+body.context-dict-extension .menu-text {
+    flex-grow: 1;
+    font-size: 14px;
+}
+
+body.context-dict-extension .shortcut {
+    color: #999;
+    font-size: 12px;
+}
+
+/* Settings panel styles */
+body.context-dict-extension .panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+body.context-dict-extension .panel.active {
+    transform: translateX(0);
+}
+
+body.context-dict-extension .panel.hidden {
+    display: none;
+}
+
+body.context-dict-extension .panel-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    min-height: 48px;
+    position: relative;
+}
+
+body.context-dict-extension .back-button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    left: 8px;
+    cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    transition: background-color 0.2s;
+}
+
+body.context-dict-extension .back-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.context-dict-extension .panel-title {
+    flex: 1;
+    text-align: center;
+    margin-left: 24px;
+    margin-right: 24px;
+}
+
+body.context-dict-extension .panel-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+    line-height: 24px;
+}
+
+body.context-dict-extension .panel-content {
+    padding: 16px;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.context-dict-extension .panel-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+body.context-dict-extension .panel-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+body.context-dict-extension .panel-content::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+body.context-dict-extension .panel-content::-webkit-scrollbar-thumb:hover {
+    background: #bbb;
+}
+
+body.context-dict-extension .settings-content {
+    display: none;
+}
+
+body.context-dict-extension .settings-content.active {
+    display: block;
+}
+
+/* Form styles */
+body.context-dict-extension .form-group {
+    margin-bottom: 16px;
+}
+
+body.context-dict-extension .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 14px;
+}
+
+body.context-dict-extension .form-group input,
+body.context-dict-extension .form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+    background-color: white;
+}
+
+body.context-dict-extension .button-group {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+body.context-dict-extension button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+body.context-dict-extension button.primary {
+    background: #4285f4;
+    color: white;
+    border: none;
+}
+
+body.context-dict-extension button.primary:hover {
+    background: #3367d6;
+}
+
+body.context-dict-extension button.secondary {
+    background: white;
+    color: #666;
+    border: 1px solid #ddd;
+}
+
+body.context-dict-extension button.secondary:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+/* Toast message */
+body.context-dict-extension .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 2000;
+    animation: context-dict-fadeInOut 2s ease-in-out;
+}
+
+@keyframes context-dict-fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, 20px); }
+    20% { opacity: 1; transform: translate(-50%, 0); }
+    80% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -20px); }
+}
+
+/* About panel styles */
+.about-section {
+    margin-bottom: 24px;
+}
+
+.about-section h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    margin: 0 0 12px 0;
+}
+
+.about-section p {
+    color: #666;
+    line-height: 1.5;
+    margin: 0 0 8px 0;
+}
+
+.about-section ul {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.about-section li {
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.shortcut-key {
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #666;
+}
+
+.shortcut-desc {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Content script popup styles */
+#context-dict-popup {
+    position: fixed;
+    z-index: 10000;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 400px;
+    min-width: 300px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s, transform 0.2s;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Loading spinner styles */
+#context-dict-popup .loading-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    gap: 12px;
+}
+
+#context-dict-popup .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: context-dict-spin 1s linear infinite;
+}
+
+#context-dict-popup .loading-text {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+@keyframes context-dict-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#context-dict-popup.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#context-dict-popup .popup-content {
+    padding: 16px;
+}
+
+/* 修改弹出窗口基础样式 */
+#context-dict-popup {
+    /* 保持原有样式... */
+    width: 360px; /* 固定宽度 */
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.popup-header {
+    /* 保持原有样式... */
+    margin-bottom: 0; /* 减少头部间距 */
+    padding: 12px 16px;
+}
+
+#context-dict-popup .word-info {
+    flex: 1;
+}
+
+#context-dict-popup .word-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    margin: 0;
+}
+
+#context-dict-popup .close-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    margin: -4px;
+    cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+#context-dict-popup .close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+#context-dict-popup .close-btn .material-icons {
+    font-size: 18px;
+}
+
+/* 修改内容区域样式 */
+.popup-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444;
+    padding: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* 新增Markdown内容样式 */
+.markdown-content {
+    display: flex;
+    flex-direction: column;
+    /* gap: 16px; */
+}
+
+.markdown-content h2 {
+    font-size: 16px;
+    color: #2196F3;
+    margin: 12px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #eee;
+}
+
+.markdown-content p {
+    margin: 8px 0;
+}
+
+.markdown-content ul {
+    margin: 8px 0;
+    padding-left: 24px;
+    list-style-type: disc;
+}
+
+.markdown-content a {
+    color: #2196F3;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.markdown-content a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+#context-dict-popup .meaning-section {
+    margin-bottom: 16px;
+}
+
+#context-dict-popup .meaning-section h4 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin: 0 0 8px 0;
+}
+
+#context-dict-popup .context-meaning {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #555;
+}
+
+#context-dict-popup .examples-list {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+#context-dict-popup .examples-list li {
+    margin-bottom: 6px;
+    color: #666;
+    font-size: 13px;
+}
+
+#context-dict-popup .resources-section {
+    border-top: 1px solid #eee;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+#context-dict-popup .resources-list {
+    margin: 8px 0 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+#context-dict-popup .resources-list li {
+    margin-bottom: 6px;
+}
+
+#context-dict-popup .resources-list a {
+    color: #1976D2;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    padding: 4px 0;
+}
+
+#context-dict-popup .resources-list a:hover {
+    color: #1565C0;
+}
+
+#context-dict-popup .resources-list .material-icons {
+    font-size: 16px;
+    color: #757575;
+    font-family: 'Material Icons';
+}

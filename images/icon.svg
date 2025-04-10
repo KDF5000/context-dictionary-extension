@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <!-- 背景圆形 -->
+    <circle cx="64" cy="64" r="60" fill="#4285f4"/>
+    
+    <!-- 书本形状 -->
+    <path d="M40 38v52c0 2.2 1.8 4 4 4h40c2.2 0 4-1.8 4-4V38c0-2.2-1.8-4-4-4H44c-2.2 0-4 1.8-4 4z" 
+          fill="#ffffff"/>
+    
+    <!-- 书页线条 -->
+    <path d="M48 44h32M48 54h32M48 64h20" 
+          stroke="#4285f4" 
+          stroke-width="4" 
+          stroke-linecap="round"/>
+    
+    <!-- AI元素 -->
+    <path d="M72 56l8 4-8 4-8-4 8-4z" fill="#fff" fill-opacity="0.8"/>
+    <path d="M72 64l8 4-8 4-8-4 8-4z" fill="#fff" fill-opacity="0.6"/>
+    <path d="M84 84l10 10" 
+          stroke="#4285f4" 
+          stroke-width="4" 
+          stroke-linecap="round"/>
+</svg>
