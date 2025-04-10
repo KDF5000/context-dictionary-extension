@@ -13,6 +13,28 @@ function createPopup() {
         link.rel = 'stylesheet';
         link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
         document.head.appendChild(link);
+        
+        // 确保字体加载完成
+        const style = document.createElement('style');
+        style.textContent = `
+            @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+            .material-icons {
+                font-family: 'Material Icons';
+                font-weight: normal;
+                font-style: normal;
+                font-size: 24px;
+                line-height: 1;
+                letter-spacing: normal;
+                text-transform: none;
+                display: inline-block;
+                white-space: nowrap;
+                word-wrap: normal;
+                direction: ltr;
+                -webkit-font-feature-settings: 'liga';
+                -webkit-font-smoothing: antialiased;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     popup.innerHTML = `
@@ -79,7 +101,23 @@ function showLoadingPopup(selectedText) {
         popup = createPopup();
         document.body.appendChild(popup);
         setupPopupEventListeners(popup);
+        
+        // Add close button event listener
+        const closeBtn = popup.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                // Send cancel request message to background
+                chrome.runtime.sendMessage({
+                    action: 'cancelRequest',
+                    requestId: window.currentRequestId
+                });
+                popup.remove();
+            });
+        }
     }
+    
+    // Store request ID for cancellation
+    window.currentRequestId = Date.now().toString();
 
     // Get context and metadata
     const context = getSurroundingContext(selectedText);
@@ -129,7 +167,8 @@ function showLoadingPopup(selectedText) {
         action: 'explainWord',
         selectedText,
         context,
-        metadata
+        metadata,
+        requestId: window.currentRequestId
     }, async response => {
         console.group('Content script: API Response');
         console.log('Full response:', response);

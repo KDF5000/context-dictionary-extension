@@ -2,6 +2,7 @@
 let apiEndpoint = '';
 let apiKey = '';
 let model = '';
+let activeControllers = new Map(); // Track active requests
 
 // Load API settings
 function loadApiSettings() {
@@ -133,8 +134,18 @@ function createPrompt(model, selectedText, context, metadata) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Background: received message', request);
 
-    if (request.action === 'explainWord') {
-        const { selectedText, context, metadata } = request;
+    if (request.action === 'cancelRequest') {
+        const { requestId } = request;
+        console.log('Deleting controller with ID:', requestId);
+        const controller = activeControllers.get(requestId);
+        if (controller) {
+            controller.abort();
+            activeControllers.delete(requestId);
+            console.log(`Cancelled request ${requestId}`);
+        }
+        return true;
+    } else if (request.action === 'explainWord') {
+        const { selectedText, context, metadata, requestId } = request;
 
         const handleExplanation = async () => {
             let timeoutId;
@@ -170,6 +181,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 
                 // Setup request with timeout
                 controller = new AbortController();
+                console.log('Setting controller with ID:', requestId);
+                activeControllers.set(requestId, controller);
                 const timeoutPromise = new Promise((_, reject) => {
                     timeoutId = setTimeout(() => {
                         controller.abort();
@@ -321,7 +334,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             } finally {
                 // Clean up
                 if (timeoutId) clearTimeout(timeoutId);
-                if (controller) controller.abort();
+                if (controller) {
+                    controller.abort();
+                    activeControllers.delete(requestId);
+                }
             }
         };
 
