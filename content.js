@@ -597,6 +597,12 @@ function hidePopup() {
             window._popupScrollHandler = null;
         }
 
+        // 恢复原始选择状态
+        const selection = window.getSelection();
+        if (selection) {
+            selection.removeAllRanges();
+        }
+
         // 移除内容变化监听器
         if (window._popupResizeObserver) {
             window._popupResizeObserver.disconnect();

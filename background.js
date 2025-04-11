@@ -266,7 +266,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             }
                         });
                     } catch (e) {
-                        console.error('Error reading stream:', e);
+                        console.log('Error reading stream:', e);
                         chrome.tabs.sendMessage(sender.tab.id, {
                             action: 'streamUpdate',
                             error: '读取响应流失败: ' + e.message
@@ -280,10 +280,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     console.group('Background: Process Response');
                     console.log('Raw API response:', data);
 
-                    // Get the response content
+                    // Get the response content with null checks
                     const content = {
                         word: selectedText,
-                        markdown: data.choices[0].message.content.trim()
+                        markdown: data?.choices?.[0]?.message?.content?.trim() || ''
                     };
                     console.log('Response content:', content);
                     console.groupEnd();
