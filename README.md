@@ -25,10 +25,14 @@ A context-aware smart dictionary Chrome extension that helps users understand wo
 
 ## Configuration
 
-Before using, you need to configure in `background.js` file:
+Before using, you need to configure API settings in the extension's options page:
 
-1. API_ENDPOINT: Set to your AI service endpoint
-2. API_KEY: Set to your API key
+1. Click the extension icon and select "API Setting"
+2. Set your API_ENDPOINT and API_KEY in the settings form
+3. Save the settings
+
+For users who need a free API endpoint and key, you can refer to:
+https://github.com/chatanywhere/GPT_API_free
 
 ## Technology Stack
 
