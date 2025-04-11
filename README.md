@@ -41,3 +41,11 @@ Before using, you need to configure in `background.js` file:
 - Make sure you have a valid AI service API and corresponding key
 - Recommended to limit API call frequency to control cost
 - Keep your API key secure
+
+## Support This Project
+
+If you find this extension helpful, consider supporting its development by buying me a coffee:
+
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/pcursor)
+
+Your support helps maintain and improve this extension!
