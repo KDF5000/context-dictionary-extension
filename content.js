@@ -111,7 +111,13 @@ function showLoadingPopup(selectedText) {
                     action: 'cancelRequest',
                     requestId: window.currentRequestId
                 });
+                // Clear any existing selections
+                if (window.getSelection) {
+                    window.getSelection().removeAllRanges();
+                }
+                // Remove popup completely
                 popup.remove();
+                popup = null;
             });
         }
     }
@@ -123,11 +129,11 @@ function showLoadingPopup(selectedText) {
     const context = getSurroundingContext(selectedText);
     const metadata = getPageMetadata();
 
-    console.log('Content script: preparing to send message', {
-        selectedText,
-        context: context.substring(0, 100) + '...',
-        metadata
-    });
+    // console.log('Content script: preparing to send message', {
+    //     selectedText,
+    //     context: context.substring(0, 100) + '...',
+    //     metadata
+    // });
 
     // Position popup near selection
     const selection = window.getSelection();
@@ -170,18 +176,17 @@ function showLoadingPopup(selectedText) {
         metadata,
         requestId: window.currentRequestId
     }, async response => {
-        console.group('Content script: API Response');
-        console.log('Full response:', response);
-        console.log('Response type:', typeof response);
+        // console.group('Content script: API Response');
+        // console.log('Full response:', response);
+        // console.log('Response type:', typeof response);
         if (response) {
-            console.log('Success:', response.success);
-            console.log('Error:', response.error);
-            console.log('Message:', response.message);
-            console.log('Data:', response.data);
+            // console.log('Success:', response.success);
+            // console.log('Error:', response.error);
+            // console.log('Message:', response.message);
+            // console.log('Data:', response.data);
             if (response.data) {
-                console.log('Data type:', typeof response.data);
-                console.log('Data keys:', Object.keys(response.data));
-                
+                // console.log('Data type:', typeof response.data);
+                // console.log('Data keys:', Object.keys(response.data));
                 // Handle streaming response
                 if (response.data.isStreaming) {
                     setupStreamingResponse(popup, response.data);
@@ -189,15 +194,15 @@ function showLoadingPopup(selectedText) {
                 }
             }
         }
-        console.groupEnd();
+        // console.groupEnd();
 
         if (!response) {
-            console.error('Content script: no response from background');
+            // console.info('Content script: no response from background');
             showErrorInPopup(popup, '与后台脚本通信失败');
             return;
         }
         if (!response.success) {
-            console.error('Content script: error from background:', response.error);
+            // console.info('Content script: error from background:', response.error);
             showErrorInPopup(popup, response.error || '请求处理失败');
             return;
         }
@@ -229,38 +234,38 @@ function setupStreamingResponse(popup, initialData) {
     // Listen for streaming updates
     chrome.runtime.onMessage.addListener(function streamingListener(request) {
         // console.group('处理流式更新');
-        console.log('收到请求:', request);
+        // console.log('收到请求:', request);
         
         if (request.action === 'streamUpdate' && request.data) {
             try {
                 const chunk = request.data.chunk;
-                console.log('原始数据块:', chunk);
+                // console.log('原始数据块:', chunk);
                 if (!chunk) {
-                    console.log('数据块为空，跳过处理');
+                    // console.log('数据块为空，跳过处理');
                     // console.groupEnd();
                     return;
                 }
                 
                 // 处理 SSE 格式的数据
                 const lines = chunk.split('\n');
-                console.log('分割后的行数:', lines.length);
-                console.log('分割后的行:', lines);
+                // console.log('分割后的行数:', lines.length);
+                // console.log('分割后的行:', lines);
                 
                 for (const line of lines) {
-                    console.log('处理行:', line);
+                    // console.log('处理行:', line);
                     if (line.startsWith('data: ')) {
                         try {
                             if (line.trim() === 'data: [DONE]') {
-                                console.log('收到 DONE 标记，结束处理');
+                                // console.log('收到 DONE 标记，结束处理');
                                 continue;
                             }
 
                             const jsonStr = line.substring(6); // 移除 'data: ' 前缀
-                            console.log('移除前缀后的JSON字符串:', jsonStr);
+                            // console.log('移除前缀后的JSON字符串:', jsonStr);
 
                             
                             const jsonData = JSON.parse(jsonStr);
-                            console.log('解析后的JSON数据:', jsonData);
+                            // console.log('解析后的JSON数据:', jsonData);
                             
                             // 从 choices[0].delta 获取内容
                             const delta = jsonData.choices?.[0]?.delta;
@@ -268,13 +273,13 @@ function setupStreamingResponse(popup, initialData) {
                             // 分别处理思考过程和回答内容
                             if (delta) {
                                 if (delta.reasoning_content !== undefined && delta.reasoning_content !== null) {
-                                    console.log('发现思考过程:', delta.reasoning_content);
+                                    // console.log('发现思考过程:', delta.reasoning_content);
                                     if (!accumulatedContent.includes('<!-- reasoning-start -->')) {
                                         accumulatedContent += '\n<!-- reasoning-start -->\n';
                                     }
                                     accumulatedContent += delta.reasoning_content;
                                 } else if (delta.content !== undefined && delta.content !== null) {
-                                    console.log('发现回答内容:', delta.content);
+                                    // console.log('发现回答内容:', delta.content);
                                     if (accumulatedContent.includes('<!-- reasoning-start -->') && 
                                         !accumulatedContent.includes('<!-- reasoning-end -->')) {
                                         accumulatedContent += '\n<!-- reasoning-end -->\n';
@@ -289,7 +294,7 @@ function setupStreamingResponse(popup, initialData) {
                                         markdown: accumulatedContent
                                     });
                                 } else {
-                                    console.log('未找到有效的内容字段 delta:', delta);
+                                    // console.log('未找到有效的内容字段 delta:', delta);
                                 }
                             }
                         } catch (e) {
@@ -298,9 +303,10 @@ function setupStreamingResponse(popup, initialData) {
                             console.error('完整错误:', e.stack);
                             continue; // 继续处理下一行
                         }
-                    } else {
-                        console.log('行不是以data:开头，跳过:', line);
                     }
+                    //  else {
+                        // console.log('行不是以data:开头，跳过:', line);
+                    // }
                 }
             } catch (e) {
                 console.error('处理流式数据失败:', e);
@@ -338,9 +344,6 @@ function updateStreamingContent(popup, data) {
         const windowHeight = window.innerHeight;
         const maxHeight = Math.min(windowHeight * 0.8, contentHeight + 100); // 100px padding
         popup.style.maxHeight = `${maxHeight}px`;
-        console.log('Content height:', contentHeight);
-        console.log('windowHeight:', windowHeight);
-        console.log('max height:', maxHeight);
 
         // Store current scroll position and check if we're at the bottom
         const isAtBottom = markdownContent.scrollHeight - markdownContent.scrollTop <= markdownContent.clientHeight + 50;
@@ -630,6 +633,7 @@ function hidePopup() {
 
                 // 重置选中文本位置
                 lastSelectionRect = null;
+                popup.remove();
             }
         }, 300); // Wait for fade out animation
     }
@@ -926,10 +930,11 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
                 }
                 break;
             default:
-                console.warn('Content script: unknown action received', request.action);
+                // console.info('Content script: unknown action received', request.action);
+                break;
         }
     } catch (error) {
-        console.error('Content script: error handling message', error);
+        console.info('Content script: error handling message', error);
         const popup = document.getElementById('context-dict-popup');
         if (popup) {
             showErrorInPopup(popup, '处理消息时出错');
@@ -939,7 +944,12 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 
 // Hide popup when clicking outside
 document.addEventListener('mousedown', function(e) {
+    const popup = document.getElementById('context-dict-popup')
     if (popup && !popup.contains(e.target)) {
+        chrome.runtime.sendMessage({
+            action: 'cancelRequest',
+            requestId: window.currentRequestId
+        });
         hidePopup();
     }
 });
