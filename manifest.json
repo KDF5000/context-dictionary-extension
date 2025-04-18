@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Context Dictionary",
   "description": "A Chrome extension that provides contextual dictionary lookup with AI-powered explanations.",
-  "version": "1.0",
+  "version": "1.0.1",
   "web_accessible_resources": [{
     "resources": ["lib/marked.min.js"],
     "matches": ["<all_urls>"]
@@ -10,8 +10,7 @@
   "permissions": [
     "contextMenus",
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "<all_urls>"
