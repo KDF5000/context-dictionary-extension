@@ -2,7 +2,7 @@
 #context-dict-popup {
     position: fixed;
     z-index: 10000;
-    width: min(90vw, 520px);
+    width: min(90vw, 600px); /* Increased width from 520px */
     min-height: 120px;
     /* max-height: 75vh; */
     margin: 0;
@@ -668,101 +668,212 @@ body.context-dict-extension .toast {
     padding: 16px;
 }
 
-/* 修改弹出窗口基础样式 */
-#context-dict-popup {
-    /* 保持原有样式... */
-    width: 360px; /* 固定宽度 */
+/* Search Popup Styles */
+#context-dict-search-popup {
+    position: fixed;
+    top: 20vh; /* Fixed vertical position */
+    left: 50%;
+    transform: translateX(-50%) scale(0.95); /* Center horizontally only, start scaled down */
+    width: 50vw; /* Set width to 50% of viewport width */
+    background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
+    z-index: 2147483647; /* Ensure it's on top */
+    opacity: 0;
+    visibility: hidden;
+    /* transform adjusted above */
+    transition: opacity 0.2s ease-out, visibility 0.2s ease-out, transform 0.2s ease-out;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow: hidden; /* Prevent content overflow before rounding */
+    display: flex; /* Use flexbox for layout */
+    flex-direction: column; /* Stack children vertically */
 }
 
-.popup-header {
-    /* 保持原有样式... */
-    margin-bottom: 0; /* 减少头部间距 */
-    padding: 12px 16px;
+#context-dict-search-popup.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) scale(1); /* Ensure final state is centered horizontally */
 }
 
-#context-dict-popup .word-info {
-    flex: 1;
+.search-input-container {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px; /* Adjusted padding */
+    border-bottom: 1px solid #e0e0e0; /* Separator line */
+    /* Removed flex-wrap and gap, handled within wrapper */
 }
 
-#context-dict-popup .word-text {
-    font-size: 16px;
-    font-weight: 500;
-    color: #333;
-    margin: 0;
+.context-tags-container {
+    display: flex;
+    flex-wrap: nowrap; /* Prevent tags from wrapping */
+    gap: 6px; /* Increased gap slightly */
+    align-items: center;
+    overflow: hidden; /* Hide overflowing tags */
+    margin-right: 8px; /* Add space to the right of tags */
+    flex-shrink: 0; /* Prevent shrinking, let wrapper handle overflow */
 }
 
-#context-dict-popup .close-btn {
+.context-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #ede7f6; /* Light purple background */
+    color: #5e35b1; /* Darker purple text */
+    padding: 4px 10px; /* Adjusted padding */
+    border-radius: 12px; /* Pill shape */
+    font-size: 13px;
+    font-weight: 500; /* Slightly bolder */
+    cursor: default;
+    white-space: nowrap;
+    flex-shrink: 0; /* Prevent individual tags from shrinking */
+}
+
+.context-tag .material-icons {
+    font-size: 14px; /* Smaller icon */
+    margin-right: 3px;
+}
+
+.context-tag .remove-tag-btn {
+    margin-left: 4px;
     background: none;
     border: none;
-    padding: 4px;
-    margin: -4px;
+    padding: 0;
     cursor: pointer;
+    font-size: 14px; /* Keep size */
+    color: #1976D2; /* Match text color */
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.context-tag .remove-tag-btn:hover {
+    opacity: 1;
+}
+
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    flex-grow: 1; /* Allow input wrapper to take remaining space */
+    background-color: #ffffff; /* White background */
+    /* border: 1px solid #e0e0e0; */ /* Light gray border - Removed */
+    border-radius: 20px; /* Rounded corners for the wrapper */
+    padding: 0 12px; /* Padding inside the wrapper */
+    height: 40px; /* Fixed height for the wrapper */
+    overflow: hidden; /* Clip content like tags */
+}
+
+.search-input-wrapper .search-icon {
     color: #666;
+    margin-right: 8px; /* Space between icon and tags/input */
+    font-size: 22px;
+    flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+#context-dict-search-input {
+    flex-grow: 1;
+    border: none;
+    outline: none;
+    font-size: 16px; /* Increased font size */
+    font-weight: normal;
+    color: #333;
+    background-color: transparent; /* Ensure transparent background */
+    padding: 0; /* No internal padding */
+    margin-left: 4px; /* Add small space after tags */
+    min-width: 100px;
+    height: 100%; /* Fill wrapper height */
+}
+
+#context-dict-search-input::placeholder {
+    color: #9e9e9e;
+}
+
+#context-dict-search-popup .close-btn {
+    background: none;
+    border: none;
+    padding: 6px;
+    margin-left: 8px;
+    cursor: pointer;
+    color: #757575;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background-color 0.2s;
+    transition: background-color 0.15s ease;
 }
 
-#context-dict-popup .close-btn:hover {
+#context-dict-search-popup .close-btn:hover {
     background-color: rgba(0, 0, 0, 0.05);
     color: #333;
 }
 
-#context-dict-popup .close-btn .material-icons {
-    font-size: 18px;
+#context-dict-search-popup .close-btn .material-icons {
+    font-size: 20px;
 }
 
-/* 修改内容区域样式 */
-.popup-body {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #444;
-    padding: 16px;
-    max-height: 60vh;
+#context-dict-suggestions {
+    list-style: none;
+    padding: 8px 0; /* Padding top/bottom for the list */
+    margin: 0;
+    max-height: 350px; /* Limit height and allow scrolling */
     overflow-y: auto;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    /* display: none; */ /* Initially shown for contexts */
+    flex-grow: 1; /* Allow list to take remaining height */
 }
 
-/* 新增Markdown内容样式 */
-.markdown-content {
+/* Scrollbar styling (optional, for better aesthetics) */
+#context-dict-suggestions::-webkit-scrollbar {
+    width: 6px;
+}
+
+#context-dict-suggestions::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+#context-dict-suggestions::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.suggestion-item {
     display: flex;
-    flex-direction: column;
-    /* gap: 16px; */
-    -webkit-overflow-scrolling: touch;
+    align-items: center;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
 }
 
-.markdown-content h2 {
-    font-size: 16px;
-    color: #2196F3;
-    margin: 12px 0 8px 0;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #eee;
+.suggestion-item:hover {
+    background-color: #f5f5f5; /* Hover background */
 }
 
-.markdown-content p {
-    margin: 8px 0;
+.suggestion-icon {
+    color: #5f6368; /* Icon color */
+    margin-right: 16px;
+    font-size: 20px;
 }
 
-.markdown-content ul {
-    margin: 8px 0;
-    padding-left: 24px;
-    list-style-type: disc;
+.suggestion-text {
+    flex-grow: 1;
+    font-size: 16px; /* Increased font size */
+    color: #3c4043;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 16px;
 }
 
-.markdown-content a {
-    color: #2196F3;
-    text-decoration: none;
-    transition: opacity 0.2s;
+.suggestion-action {
+    font-size: 12px;
+    color: #757575;
+    margin-right: 8px;
+    text-transform: uppercase;
 }
 
-.markdown-content a:hover {
-    opacity: 0.8;
-    text-decoration: underline;
+/* Remove styles for suggestion-arrow as it's removed */
+/* .suggestion-arrow { ... } */
+
+.suggestion-selected-indicator {
+    margin-left: auto;
+    color: #1976D2; /* Blue checkmark */
+    font-size: 20px;
 }
 
 #context-dict-popup .meaning-section {
@@ -831,4 +942,12 @@ body.context-dict-extension .toast {
     font-size: 16px;
     color: #757575;
     font-family: 'Material Icons';
+}
+
+.suggestion-item.context-item.selected {
+    background-color: #e8f0fe; /* Highlight selected context */
+}
+
+.suggestion-item.context-item .suggestion-icon {
+    /* Style context icons if needed */
 }

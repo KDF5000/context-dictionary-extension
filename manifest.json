@@ -1,28 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Context Dictionary",
-  "description": "A Chrome extension that provides contextual dictionary lookup with AI-powered explanations.",
-  "version": "1.0.2",
-  "web_accessible_resources": [{
-    "resources": ["lib/marked.min.js"],
-    "matches": ["<all_urls>"]
-  }],
+  "name": "Context Dictionary Extension",
+  "version": "1.1.0",
+  "description": "Look up word definitions and context directly on the page.",
   "permissions": [
+    "activeTab",
+    "scripting",
     "contextMenus",
-    "storage",
-    "activeTab"
+    "storage"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
-    }
-  },
   "background": {
     "service_worker": "background.js"
   },
@@ -33,9 +19,32 @@
       "css": ["styles.css"]
     }
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",
     "128": "images/icon128.png"
-  }
+  },
+  "commands": {
+    "toggle-search-popup": {
+      "suggested_key": {
+        "default": "Ctrl+G",
+        "mac": "Command+G"
+      },
+      "description": "Toggle the search popup"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

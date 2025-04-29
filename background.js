@@ -355,3 +355,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     return true; // Keep message channel open for async response
 });
+
+// Listen for keyboard shortcuts
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "toggle-search-popup") {
+    // Query the active tab
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0] && tabs[0].id) {
+        console.log(`[Background] Sending toggleSearchPopup to tab ${tabs[0].id}`);
+        // Send a message to the content script in the active tab
+        chrome.tabs.sendMessage(tabs[0].id, { action: "toggleSearchPopup" }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("Error sending message to content script:", chrome.runtime.lastError.message);
+            // Handle error, maybe the content script hasn't loaded yet
+          } else {
+            console.log("Message sent to content script:", response);
+          }
+        });
+      } else {
+        console.error("Could not get active tab ID.");
+      }
+    });
+  }
+});
