@@ -1245,7 +1245,28 @@ class SearchPopupManager {
       "with contexts:",
       selectedContexts.map((c) => c.name)
     );
-    hideSearchPopup(); // Call the global function
+
+    // Check for API key and endpoint before proceeding
+    chrome.storage.sync.get(['apiKey', 'apiEndpoint'], (settings) => {
+      if (!settings.apiKey || !settings.apiEndpoint) {
+        console.error("API Key or Endpoint not set.");
+        // Show error using the main popup mechanism
+        showLoadingPopup(term); // Initialize the main popup
+        const mainPopup = document.getElementById("context-dict-popup");
+        if (mainPopup) {
+            showErrorInPopup(mainPopup, "错误：请先在扩展设置中配置 API Key 和 Endpoint");
+        }
+        hideSearchPopup(); // Hide the search popup
+      } else {
+        // API settings are present, proceed with the search/explanation
+        // Reuse the existing showLoadingPopup function for explanation
+        showLoadingPopup(term);
+        hideSearchPopup(); // Hide the search popup after initiating the loading popup
+      }
+    });
+
+    // Note: hideSearchPopup() is now called conditionally within the callback
+    // hideSearchPopup(); // Call the global function - Moved inside callback
   }
 
   setupEventListeners() {
@@ -1302,7 +1323,6 @@ class SearchPopupManager {
       }
     });
 
-    document.addEventListener("click", handleClickOutsideSearchPopup, true);
   }
 }
 
@@ -1333,12 +1353,22 @@ function showSearchPopup(rect, hasSelection) {
 
   // Focus the input field
   searchPopupManager.searchInput.focus();
+
+  // Add the click outside listener *after* showing the popup
+  // Use setTimeout to avoid immediate closing if the trigger click is outside
+  setTimeout(() => {
+    document.removeEventListener("click", handleClickOutsideSearchPopup, true); // Ensure no duplicates
+    document.addEventListener("click", handleClickOutsideSearchPopup, true);
+  }, 0);
 }
 
 // Helper function to position the search popup
 function positionSearchPopup(popup, rect, hasSelection) {
   if (!popup) return;
 
+  // Always rely on CSS for positioning
+  // Remove dynamic style setting based on hasSelection
+  /*
   if (hasSelection) {
     // Position near the selection
     const popupWidth = popup.offsetWidth || 500; // Use estimated width if offsetWidth is 0
@@ -1374,17 +1404,34 @@ function positionSearchPopup(popup, rect, hasSelection) {
     popup.style.left = ''; // Let CSS handle 'left: 50%'
     popup.style.transform = ''; // Let CSS handle 'transform: translateX(-50%)'
   }
+  */
 }
 
 // Function to hide the search popup
 function hideSearchPopup() {
   if (searchPopupManager.popup) {
-    searchPopupManager.popup.style.display = "none";
-    searchPopupManager.suggestionsList.innerHTML = "";
-    searchPopupManager.suggestionsList.style.display = "none";
-    searchPopupManager.searchInput.value = "";
-    searchPopupManager.tagsContainer.innerHTML = "";
-    selectedContexts = []; // Reset selected contexts
+    searchPopupManager.popup.classList.remove('show'); // Use class to hide
+    // Remove direct style manipulation to rely on CSS transitions
+    // searchPopupManager.suggestionsList.innerHTML = "";
+    // searchPopupManager.suggestionsList.style.display = "none";
+    // searchPopupManager.searchInput.value = "";
+    // searchPopupManager.tagsContainer.innerHTML = "";
+    // Reset selected contexts when popup is fully hidden (optional, might need transitionend event)
+    // selectedContexts = [];
+
+    // Consider resetting input/suggestions after transition ends if needed
+    searchPopupManager.popup.addEventListener('transitionend', function handleTransitionEnd() {
+        if (!searchPopupManager.popup.classList.contains('show')) {
+            // Clear content only after fade out is complete
+            searchPopupManager.suggestionsList.innerHTML = "";
+            searchPopupManager.searchInput.value = "";
+            searchPopupManager.tagsContainer.innerHTML = "";
+            selectedContexts = []; // Reset selected contexts
+        }
+        // Remove the listener to avoid multiple executions
+        searchPopupManager.popup.removeEventListener('transitionend', handleTransitionEnd);
+    });
+
   }
   document.removeEventListener("click", handleClickOutsideSearchPopup, true);
 }
@@ -1400,6 +1447,7 @@ function handleClickOutsideSearchPopup(event) {
 }
 
 // Position the search popup
+/*
 function positionSearchPopup(popup, rect, hasSelection) {
   if (!popup || !rect) return;
 
@@ -1427,10 +1475,8 @@ function positionSearchPopup(popup, rect, hasSelection) {
     popup.style.maxWidth = "90vw";
     popup.style.maxHeight = "80vh";
   }
-
-  popup.style.display = "block";
-  popup.style.zIndex = "999998"; // Ensure it's below the main popup
 }
+*/
 
 // Mock data for search suggestions (replace with actual API call)
 const mockSuggestions = [
