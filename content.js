@@ -1274,10 +1274,25 @@ class SearchPopupManager {
     // Assuming isContextSelectionMode, hideSearchPopup, handleClickOutsideSearchPopup are global
 
     this.searchInput.addEventListener("input", (e) => {
+      const query = e.target.value.toLowerCase();
+
+      // 当输入框清空时，切换回上下文选择模式
+      if (query === '') {
+        if (!isContextSelectionMode) {
+          console.log('[Input Event] Input cleared. Switching back to context selection mode.');
+          isContextSelectionMode = true;
+          displayContexts(); // 重新显示上下文列表
+          this.updateContextTags(); // 更新标签和占位符
+          this.suggestionsList.style.display = 'block'; // 确保建议列表（现在是上下文列表）可见
+        }
+        return; // 清空时不进行搜索建议过滤
+      }
+
+      // 只有在搜索模式下才显示搜索建议
       if (isContextSelectionMode) {
         return;
       }
-      const query = e.target.value.toLowerCase();
+
       // Use this.mockSuggestions if it's an instance property
       const filteredSuggestions = this.mockSuggestions.filter((item) =>
         item.title.toLowerCase().includes(query)
@@ -1286,6 +1301,31 @@ class SearchPopupManager {
     });
 
     this.searchInput.addEventListener("keydown", (e) => {
+      // Handle printable characters in context selection mode
+      if (isContextSelectionMode && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Allow space for potential future use, but currently it switches mode
+        // if (e.key === ' ') {
+        //   e.preventDefault(); // Prevent space from typing if needed
+        //   // Potentially handle space differently, e.g., select/deselect context
+        //   return;
+        // }
+
+        // Switch to search mode and input the character
+        console.log(`[Keydown] Printable key '${e.key}' pressed in context mode. Switching...`);
+        this.switchToSearchMode();
+        // Do not set the value immediately, let the default input handle it
+        // this.searchInput.value = e.key; // Set input value to the pressed key
+        // // Optional: Trigger suggestions immediately based on the single character
+        // const query = this.searchInput.value.toLowerCase();
+        // const filteredSuggestions = mockSuggestions.filter((item) =>
+        //   item.title.toLowerCase().includes(query)
+        // );
+        // this.displaySuggestions(filteredSuggestions);
+        // e.preventDefault(); // Prevent the character from being typed *again* after mode switch
+        // return; // Stop further processing for this keydown event
+      }
+
+      // Existing keydown logic
       if (e.key === "Escape") {
         hideSearchPopup();
       } else if (e.key === 'Tab') {
@@ -1331,35 +1371,38 @@ const searchPopupManager = new SearchPopupManager();
 
 // Function to show the search popup
 function showSearchPopup(rect, hasSelection) {
-  // Assuming isContextSelectionMode and displayContexts are global
-  isContextSelectionMode = true; // Reset to context selection mode
+  console.log('[showSearchPopup] Called with rect:', rect, 'hasSelection:', hasSelection);
+  const { element: searchPopup, performSearch, toggleContextSelection } = searchPopupManager.createSearchPopup();
+  const searchInput = searchPopup.querySelector('#context-dict-search-input');
 
-  if (!searchPopupManager.popup) {
-    searchPopupManager.createSearchPopup();
-  }
-
-  const popup = searchPopupManager.popup;
-
-  // Position the popup based on the rectangle
-  positionSearchPopup(popup, rect, hasSelection); // Use the helper function to position
-
-  // Make the popup visible using the .show class for transitions
-  popup.classList.add('show');
-
-  // Reset state and display contexts
+  // 重置状态
+  isContextSelectionMode = true;
   selectedContexts = [];
-  searchPopupManager.updateContextTags(); // Update tags based on empty selection
-  displayContexts(); // Display initial context options
+  searchPopupManager.updateContextTags();
+  searchInput.value = '';
 
-  // Focus the input field
-  searchPopupManager.searchInput.focus();
+  // 定位弹窗
+  positionSearchPopup(searchPopup, rect);
 
-  // Add the click outside listener *after* showing the popup
-  // Use setTimeout to avoid immediate closing if the trigger click is outside
+  // 显示弹窗
+  searchPopup.style.display = 'block';
+  searchPopup.classList.add('show');
+
+  // 自动聚焦输入框 (使用 setTimeout 确保弹窗可见)
   setTimeout(() => {
-    document.removeEventListener("click", handleClickOutsideSearchPopup, true); // Ensure no duplicates
-    document.addEventListener("click", handleClickOutsideSearchPopup, true);
-  }, 0);
+    if (searchInput) {
+      searchInput.focus();
+      console.log('[showSearchPopup] Input focused via setTimeout.');
+    } else {
+      console.error('[showSearchPopup] Search input not found for focusing in setTimeout.');
+    }
+  }, 50); // 50ms 延迟确保渲染完成
+
+  // 显示上下文选项
+  displayContexts();
+
+  // 添加点击外部关闭的监听器
+  document.addEventListener('click', handleClickOutsideSearchPopup, true);
 }
 
 // Helper function to position the search popup
