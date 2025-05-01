@@ -1,3 +1,10 @@
+// Import Fuse.js library
+try {
+  importScripts('lib/fuse.min.js');
+} catch (e) {
+  console.error('Failed to load fuse.min.js:', e);
+}
+
 // Global variables for API configuration
 let apiEndpoint = '';
 let apiKey = '';
@@ -18,6 +25,7 @@ function loadApiSettings() {
 
 // Initialize context menu and load settings
 chrome.runtime.onInstalled.addListener(async () => {
+    console.log('onInstalled event fired.'); // Add log inside onInstalled
     await loadApiSettings();
     // Remove existing menu items
     chrome.contextMenus.removeAll(() => {
@@ -85,7 +93,12 @@ chrome.storage.sync.get(['endpoint', 'apiKey'], (result) => {
 });
 
 // Create prompt for API
-function createPrompt(model, selectedText, context, metadata) {
+function createPrompt(model, selectedText, contextData) { // Updated signature
+    // Extract context and metadata from the 'currentPage' source
+    const currentPageSource = contextData.sources.find(s => s.type === 'currentPage');
+    const context = currentPageSource ? currentPageSource.context : "";
+    const metadata = currentPageSource ? currentPageSource.metadata : { title: "N/A", url: "N/A" };
+
     return {
         model: model,
         messages: [
@@ -131,7 +144,18 @@ function createPrompt(model, selectedText, context, metadata) {
 }
 
 // Create prompt for Search API
-function createSearchPrompt(model, searchTerm, context) {
+function createSearchPrompt(model, searchTerm, contextData) { // Updated signature, contextData might be used later
+    // Currently, the prompt only uses searchTerm. Context from contextData is available if needed.
+    const allContextInfo = contextData.sources.map(s => {
+        if (s.type === 'currentPage') {
+            // Include context and metadata title/url for currentPage
+            const metadataInfo = s.metadata ? ` (Title: ${s.metadata.title}, URL: ${s.metadata.url})` : '';
+            return `${s.context}${metadataInfo}`;
+        } else {
+            // Include URLs for other types
+            return `${s.urls?.join(', ') || 'N/A'}`;
+        }
+    }).join('\n');
     return {
         model: model,
         messages: [
@@ -164,6 +188,8 @@ function createSearchPrompt(model, searchTerm, context) {
                 role: "user",
                 content: `请处理以下输入："${searchTerm}"
 
+上下文："${allContextInfo}"
+
 请根据内容判断是问题还是词语/短语，并按要求提供回答/解释和推荐资源。`
             }
         ],
@@ -178,6 +204,7 @@ function createSearchPrompt(model, searchTerm, context) {
 
 // Handle messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Background: onMessage listener triggered.'); // Add log at the beginning of the listener
     console.log('Background: received message', request);
 
     if (request.action === 'cancelRequest') {
@@ -189,7 +216,63 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             activeControllers.delete(requestId);
             console.log(`Cancelled request ${requestId}`);
         }
-        return true;
+        return true; // Indicate asynchronous response
+    } else if (request.action === 'searchBookmarks') {
+        const { query } = request;
+        console.log('Background: Received searchBookmarks request with query:', query);
+
+        // Function to flatten the bookmark tree
+        const flattenBookmarks = (nodes) => {
+            let bookmarks = [];
+            for (const node of nodes) {
+                if (node.url && node.title) { // It's a bookmark
+                    bookmarks.push({ title: node.title, url: node.url });
+                } else if (node.children) { // It's a folder
+                    bookmarks = bookmarks.concat(flattenBookmarks(node.children));
+                }
+            }
+            return bookmarks;
+        };
+
+        chrome.bookmarks.getTree((bookmarkTreeNodes) => {
+            console.log('Background: Bookmark tree nodes:', bookmarkTreeNodes); 
+            const allBookmarks = flattenBookmarks(bookmarkTreeNodes);
+            let filteredUrls = [];
+            console.log('Background: All bookmarks:', allBookmarks);
+
+            if (typeof Fuse === 'undefined') {
+                console.error('Fuse.js is not loaded. Falling back to simple includes search.');
+                // Fallback to simple search if Fuse.js is not loaded
+                filteredUrls = allBookmarks
+                    .filter(bookmark => bookmark.title.toLowerCase().includes(query.toLowerCase()))
+                    .map(bookmark => bookmark.url);
+            } else {
+                // Use Fuse.js for fuzzy search
+                const fuseOptions = {
+                    includeScore: true,
+                    threshold: 0.4, // Adjust threshold for desired fuzziness (0.0 = exact, 1.0 = match anything)
+                    keys: ['title']
+                };
+                const fuse = new Fuse(allBookmarks, fuseOptions);
+                const results = fuse.search(query);
+                console.log('Background: Fuse.js search results:', results);
+                // Extract URLs from Fuse results (item property holds the original object)
+                filteredUrls = results.map(result => result.item.url);
+            }
+
+            console.log('Background: Filtered bookmark URLs:', filteredUrls);
+            sendResponse({ success: true, data: filteredUrls });
+        });
+
+        return true; // Indicate asynchronous response
+    } else if (request.action === 'searchHistory') {
+        const { query } = request;
+        chrome.history.search({ text: query, maxResults: 10 }, (results) => { // Limit results for performance
+            console.log('Background: search history: ', results);
+            const urls = results.map(item => item.url);
+            sendResponse({ success: true, data: urls });
+        });
+        return true; // Indicate asynchronous response
     } else if (request.action === 'explainWord' || request.action === 'search') {
         const { selectedText, context, requestId } = request;
 
@@ -229,7 +312,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     // Create prompt for API
                     prompt = createPrompt(apiSettings.model, selectedText, context.context, context.metadata);
                 }
-                console.log('Background: created prompt', JSON.stringify(prompt, null, 2));
+                console.log('Background: created prompt', prompt);
                 
                 // Setup request with timeout
                 controller = new AbortController();
@@ -430,3 +513,5 @@ chrome.commands.onCommand.addListener((command) => {
     });
   }
 });
+
+// ... existing code ...

@@ -97,8 +97,50 @@ function getPageMetadata() {
   };
 }
 
+// Helper function to get context from the current page
+function getContextFromCurrentPage(selectedText) {
+  // Reuse existing functions
+  const context = getSurroundingContext(selectedText);
+  const metadata = getPageMetadata();
+  return {
+    type: 'currentPage',
+    context: context,
+    metadata: metadata
+  };
+}
+
+// Placeholder for getting context from bookmarks (requires background script)
+async function getContextFromBookmarks(selectedText) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: "searchBookmarks", query: selectedText },
+      (response) => {
+        resolve({
+          type: 'bookmarks',
+          urls: response && response.success ? response.data : []
+        });
+      }
+    );
+  });
+}
+
+// Placeholder for getting context from history (requires background script)
+async function getContextFromHistory(selectedText) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: "searchHistory", query: selectedText },
+      (response) => {
+        resolve({
+          type: 'history',
+          urls: response && response.success ? response.data : []
+        });
+      }
+    );
+  });
+}
+
 // Show loading popup
-function showLoadingPopup(selectedText, type = "explain") {
+async function showLoadingPopup(selectedText, type = "explain") { // Make async to handle potential awaits
   let popup = document.getElementById("context-dict-popup");
   if (!popup) {
     popup = createPopup();
@@ -146,25 +188,54 @@ function showLoadingPopup(selectedText, type = "explain") {
   // Store request ID for cancellation
   window.currentRequestId = Date.now().toString();
 
-  context = {
-    context: "",
-    metadata: "",
+  let contextData = {
+    sources: [] // To store context from different sources for search
   };
+  let action = "explainWord";
 
-  action = "explainWord";
   if (type === "explain") {
-      // Get context and metadata
-      context.context = getSurroundingContext(selectedText);
-      context.metadata = getPageMetadata();
-  } if (type === "search") {
-    // Get context and metadata by context type
+      contextData.sources.push(getContextFromCurrentPage(selectedText));
+  } else if (type === "search") {
     action = "search";
+    // Get context based on selected context types (assuming selectedContexts is accessible)
+    console.log('Search initiated with selected contexts:', selectedContexts);
+    const contextPromises = [];
+    if (selectedContexts && selectedContexts.length > 0) {
+        selectedContexts.forEach(ctx => {
+            if (ctx.id === 'currentPage') {
+                // Directly get current page context (synchronous)
+                contextData.sources.push(getContextFromCurrentPage(selectedText));
+            } else if (ctx.id === 'bookmarks') {
+                // Add promise for bookmark search
+                contextPromises.push(getContextFromBookmarks(selectedText));
+            } else if (ctx.id === 'history') {
+                // Add promise for history search
+                contextPromises.push(getContextFromHistory(selectedText));
+            } else {
+                // Handle unknown context type
+                console.warn(`Unknown context type: ${ctx.id}`);
+            }
+            // Add more context types here if needed
+        });
+    } else {
+        // Default to current page context if none selected?
+        console.log('No specific context selected for search, defaulting to current page.');
+        contextData.sources.push(getContextFromCurrentPage(selectedText));
+    }
+
+    // Wait for all async context retrievals to complete
+    if (contextPromises.length > 0) {
+        const results = await Promise.all(contextPromises);
+        contextData.sources = contextData.sources.concat(results);
+    }
+    console.log('Aggregated context for search:', contextData);
+
   }
 
   console.log('Content script: preparing to send message', {
       action,
       selectedText,
-      context: context
+      context: contextData // Send aggregated context
   });
 
   // Send message to background script to make API request
@@ -172,7 +243,7 @@ function showLoadingPopup(selectedText, type = "explain") {
     {
       action: action,
       selectedText,
-      context,
+      context: contextData, // Send the modified context object
       requestId: window.currentRequestId,
     },
     async (response) => {
@@ -1585,7 +1656,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       hasSelection = false;
     }
     showSearchPopup(rect, hasSelection); // Show the popup with the determined position and selection status
+    // Indicate that the response will be sent asynchronously (or keep the port open)
+    return true; 
   }
+  // Return true for other potential async messages if needed, or false/undefined otherwise
+  // For now, only handling toggleSearchPopup explicitly
+  return false; // Explicitly return false if no async operation for other message types
 });
 
 // ... existing code ...
