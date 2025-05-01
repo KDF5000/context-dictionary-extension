@@ -98,7 +98,7 @@ function getPageMetadata() {
 }
 
 // Show loading popup
-function showLoadingPopup(selectedText) {
+function showLoadingPopup(selectedText, type = "explain") {
   let popup = document.getElementById("context-dict-popup");
   if (!popup) {
     popup = createPopup();
@@ -125,35 +125,8 @@ function showLoadingPopup(selectedText) {
     }
   }
 
-  // Store request ID for cancellation
-  window.currentRequestId = Date.now().toString();
-
-  // Get context and metadata
-  const context = getSurroundingContext(selectedText);
-  const metadata = getPageMetadata();
-
-  // console.log('Content script: preparing to send message', {
-  //     selectedText,
-  //     context: context.substring(0, 100) + '...',
-  //     metadata
-  // });
-
   // Position popup near selection
-  const selection = window.getSelection();
-  if (selection.rangeCount > 0) {
-    const rect = selection.getRangeAt(0).getBoundingClientRect();
-    positionPopup(popup, rect);
-  } else {
-    // Fallback position in the center of the viewport
-    const rect = {
-      left: window.innerWidth / 2,
-      top: window.innerHeight / 2,
-      width: 0,
-      height: 0,
-    };
-    positionPopup(popup, rect);
-  }
-
+  positionPopup(popup);
   // Reset and show popup
   popup.querySelector(".loading-section").style.display = "block";
   popup.querySelector(".content-section").style.display = "none";
@@ -170,14 +143,36 @@ function showLoadingPopup(selectedText) {
 
   // 显示加载状态
   showLoading();
+  // Store request ID for cancellation
+  window.currentRequestId = Date.now().toString();
+
+  context = {
+    context: "",
+    metadata: "",
+  };
+
+  action = "explainWord";
+  if (type === "explain") {
+      // Get context and metadata
+      context.context = getSurroundingContext(selectedText);
+      context.metadata = getPageMetadata();
+  } if (type === "search") {
+    // Get context and metadata by context type
+    action = "search";
+  }
+
+  console.log('Content script: preparing to send message', {
+      action,
+      selectedText,
+      context: context
+  });
 
   // Send message to background script to make API request
   chrome.runtime.sendMessage(
     {
-      action: "explainWord",
+      action: action,
       selectedText,
       context,
-      metadata,
       requestId: window.currentRequestId,
     },
     async (response) => {
@@ -569,7 +564,7 @@ async function showContentPopup(data) {
 let lastSelectionRect = null;
 
 // Position popup relative to selection
-function positionPopup(popup, rect) {
+function positionPopup(popup) {
   if (!popup) return;
 
   // 设置弹窗宽度为视口宽度的90%，最大不超过1000px
@@ -1251,7 +1246,7 @@ class SearchPopupManager {
       if (!settings.apiKey || !settings.apiEndpoint) {
         console.error("API Key or Endpoint not set.");
         // Show error using the main popup mechanism
-        showLoadingPopup(term); // Initialize the main popup
+        showLoadingPopup(term, "search"); // Initialize the main popup
         const mainPopup = document.getElementById("context-dict-popup");
         if (mainPopup) {
             showErrorInPopup(mainPopup, "错误：请先在扩展设置中配置 API Key 和 Endpoint");
@@ -1260,7 +1255,7 @@ class SearchPopupManager {
       } else {
         // API settings are present, proceed with the search/explanation
         // Reuse the existing showLoadingPopup function for explanation
-        showLoadingPopup(term);
+        showLoadingPopup(term, "search");
         hideSearchPopup(); // Hide the search popup after initiating the loading popup
       }
     });

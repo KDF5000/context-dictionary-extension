@@ -130,6 +130,52 @@ function createPrompt(model, selectedText, context, metadata) {
     };
 }
 
+// Create prompt for Search API
+function createSearchPrompt(model, searchTerm, context) {
+    return {
+        model: model,
+        messages: [
+            {
+                role: "system",
+                content: `你是一个智能搜索和解释助手。请分析用户输入的内容：
+
+1.  **如果输入是一个问题**：请使用你的知识库直接回答该问题，并提供2-3个相关的、权威的学习资源链接（例如：官方文档、知名教程网站、相关论文）。
+2.  **如果输入是一个词语或短语**：请解释该词语或短语的含义，并提供2-3个相关的、权威的学习资源链接。
+
+请始终使用 Markdown 格式回复，保持清晰的结构和易读性。回复时，根据输入类型使用以下格式之一(不需要显示使用了那种格式):
+
+**格式一：回答问题**
+[对问题的直接回答]
+
+## 推荐资源
+- [资源1标题](链接1)
+- [资源2标题](链接2)
+
+**格式二：解释词语/短语**
+
+## 含义解释
+[词语或短语的详细解释]
+
+## 推荐资源
+- [资源1标题](链接1)
+- [资源2标题](链接2)`
+            },
+            {
+                role: "user",
+                content: `请处理以下输入："${searchTerm}"
+
+请根据内容判断是问题还是词语/短语，并按要求提供回答/解释和推荐资源。`
+            }
+        ],
+        temperature: 0.5, // 稍微降低创造性，更侧重准确回答/解释
+        max_tokens: 1000,
+        top_p: 1,
+        frequency_penalty: 0.1,
+        presence_penalty: 0.1,
+        "stream": true
+    };
+}
+
 // Handle messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Background: received message', request);
@@ -144,8 +190,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             console.log(`Cancelled request ${requestId}`);
         }
         return true;
-    } else if (request.action === 'explainWord') {
-        const { selectedText, context, metadata, requestId } = request;
+    } else if (request.action === 'explainWord' || request.action === 'search') {
+        const { selectedText, context, requestId } = request;
 
         const handleExplanation = async () => {
             let timeoutId;
@@ -175,8 +221,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     return;
                 }
 
-                // Create prompt for API
-                const prompt = createPrompt(apiSettings.model, selectedText, context, metadata);
+                prompt = "";
+                if (request.action === 'search') {
+                    // Create prompt for Search API
+                    prompt = createSearchPrompt(apiSettings.model, selectedText, context);
+                } else {
+                    // Create prompt for API
+                    prompt = createPrompt(apiSettings.model, selectedText, context.context, context.metadata);
+                }
                 console.log('Background: created prompt', JSON.stringify(prompt, null, 2));
                 
                 // Setup request with timeout
