@@ -217,10 +217,6 @@ async function showLoadingPopup(selectedText, type = "explain") { // Make async 
             }
             // Add more context types here if needed
         });
-    } else {
-        // Default to current page context if none selected?
-        console.log('No specific context selected for search, defaulting to current page.');
-        contextData.sources.push(getContextFromCurrentPage(selectedText));
     }
 
     // Wait for all async context retrievals to complete
@@ -229,7 +225,6 @@ async function showLoadingPopup(selectedText, type = "explain") { // Make async 
         contextData.sources = contextData.sources.concat(results);
     }
     console.log('Aggregated context for search:', contextData);
-
   }
 
   console.log('Content script: preparing to send message', {

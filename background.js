@@ -309,7 +309,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     // Create prompt for Search API
                     prompt = createSearchPrompt(apiSettings.model, selectedText, context);
                 } else {
-                    // Create prompt for API
+                    // Create prompt for explain API
                     prompt = createPrompt(apiSettings.model, selectedText, context.context, context.metadata);
                 }
                 console.log('Background: created prompt', prompt);
