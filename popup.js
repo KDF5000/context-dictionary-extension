@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load saved API settings
     loadApiSettings();
+    loadAndDisplayShortcuts(); // Load and display shortcuts
     
     // Handle model select change
     modelSelect.addEventListener('change', () => {
@@ -102,7 +103,30 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // Configure shortcuts button
+    const configureShortcutsBtn = document.getElementById('configure-shortcuts');
+    if (configureShortcutsBtn) {
+        configureShortcutsBtn.addEventListener('click', () => {
+            chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+        });
+    }
 });
+
+// Function to load and display shortcuts
+function loadAndDisplayShortcuts() {
+    chrome.commands.getAll((commands) => {
+        const toggleSearchShortcutDisplay = document.getElementById('toggle-search-shortcut');
+        if (toggleSearchShortcutDisplay) {
+            const command = commands.find(cmd => cmd.name === 'toggle-search-popup');
+            if (command && command.shortcut) {
+                toggleSearchShortcutDisplay.textContent = command.shortcut;
+            } else {
+                toggleSearchShortcutDisplay.textContent = 'Not set';
+            }
+        }
+    });
+}
 
 // Load API settings
 function loadApiSettings() {
