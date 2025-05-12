@@ -10,6 +10,8 @@ let apiEndpoint = '';
 let apiKey = '';
 let model = '';
 let activeControllers = new Map(); // Track active requests
+let copiedTexts = [];
+const MAX_COPIED_TEXTS = 100;
 
 // Load API settings
 function loadApiSettings() {
@@ -27,6 +29,13 @@ function loadApiSettings() {
 chrome.runtime.onInstalled.addListener(async () => {
     console.log('onInstalled event fired.'); // Add log inside onInstalled
     await loadApiSettings();
+    // Load copied texts from storage on startup
+    chrome.storage.local.get(['copiedTexts'], (result) => {
+      if (result.copiedTexts) {
+        copiedTexts = result.copiedTexts;
+        console.log('Loaded copied texts from storage on install/update:', copiedTexts);
+      }
+    });
     // Remove existing menu items
     chrome.contextMenus.removeAll(() => {
         // Create new menu item
@@ -61,6 +70,59 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Clear from storage
         chrome.storage.sync.remove(['endpoint', 'apiKey', 'model']);
     }
+});
+
+// Merged onMessage listener
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Background: onMessage listener triggered.');
+  console.log('Background: received message', request);
+
+  if (request.action === 'storeCopiedText') {
+    if (request.text) {
+      // Add to the beginning and keep unique items
+      copiedTexts = [request.text, ...copiedTexts.filter(t => t !== request.text)];
+      // Limit to MAX_COPIED_TEXTS
+      if (copiedTexts.length > MAX_COPIED_TEXTS) {
+        copiedTexts = copiedTexts.slice(0, MAX_COPIED_TEXTS);
+      }
+      // Persist to storage (optional, but good for persistence across sessions)
+      chrome.storage.local.set({ copiedTexts });
+      console.log('Stored copied text:', request.text, 'All copied texts:', copiedTexts);
+    }
+    sendResponse({ success: true });
+    return true; // Indicates asynchronous response
+  } else if (request.action === 'getCopiedTexts') {
+    // Retrieve from storage if available, otherwise use in-memory
+    chrome.storage.local.get(['copiedTexts'], (result) => {
+      const texts = result.copiedTexts || copiedTexts;
+      sendResponse({ success: true, data: texts });
+    });
+    return true; // Indicates asynchronous response
+  } else if (request.action === 'getBookmarks') {
+    const query = request.query || '';
+    chrome.bookmarks.search(query, (bookmarks) => {
+      if (chrome.runtime.lastError) {
+        console.error("Error searching bookmarks:", chrome.runtime.lastError.message);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      // Filter out folders and map to a consistent format
+      const filteredBookmarks = bookmarks.filter(bm => bm.url).map(bm => ({ title: bm.title, url: bm.url }));
+      sendResponse({ success: true, data: filteredBookmarks });
+    });
+    return true; // Indicates asynchronous response
+  } else if (request.action === 'getHistory') {
+    const query = request.query || '';
+    chrome.history.search({ text: query, maxResults: 50 }, (historyItems) => {
+      if (chrome.runtime.lastError) {
+        console.error("Error searching history:", chrome.runtime.lastError.message);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      sendResponse({ success: true, data: historyItems.map(item => ({ title: item.title, url: item.url })) });
+    });
+    return true; // Indicates asynchronous response
+  }
 });
 
 // Handle context menu clicks
@@ -310,7 +372,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     prompt = createSearchPrompt(apiSettings.model, selectedText, context);
                 } else {
                     // Create prompt for explain API
-                    prompt = createPrompt(apiSettings.model, selectedText, context.context, context.metadata);
+                    prompt = createPrompt(apiSettings.model, selectedText, context);
                 }
                 console.log('Background: created prompt', prompt);
                 

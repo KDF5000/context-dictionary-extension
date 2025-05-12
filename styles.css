@@ -670,6 +670,26 @@ body.context-dict-extension .toast {
 
 /* Search Popup Styles */
 #context-dict-search-popup {
+    all: initial;
+    /* Add specific resets below if needed, as 'all: initial' can be aggressive */
+    box-sizing: content-box; /* Or border-box, depending on your layout needs */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; /* Explicitly set font */
+    font-size: 16px; /* Reset font size */
+    line-height: 1.5; /* Reset line height */
+    color: #333; /* Reset text color */
+    background-color: #fff; /* Reset background color */
+    border: none; /* Reset borders */
+    margin: 0; /* Reset margins */
+    padding: 0; /* Reset paddings */
+    text-align: left; /* Reset text alignment */
+    text-decoration: none; /* Reset text decoration */
+    text-transform: none; /* Reset text transform */
+    letter-spacing: normal; /* Reset letter spacing */
+    word-spacing: normal; /* Reset word spacing */
+    font-style: normal; /* Reset font style */
+    font-weight: normal; /* Reset font weight */
+    display: flex; /* Keep or set desired display type */
+    flex-direction: column; /* Keep or set desired flex direction */
     position: fixed;
     top: 20vh; /* Fixed vertical position */
     left: 50%;
@@ -950,4 +970,19 @@ body.context-dict-extension .toast {
 
 .suggestion-item.context-item .suggestion-icon {
     /* Style context icons if needed */
+}
+
+/* Styles for disabled context suggestions */
+#context-dict-suggestions li.disabled {
+    background-color: #e9ecef; /* Light grey background for disabled items */
+    color: #adb5bd;           /* Muted text color for disabled items */
+    cursor: not-allowed;       /* Indicate non-interactive state */
+    opacity: 0.65;             /* Further visual indication of disabled state */
+}
+
+#context-dict-suggestions li.disabled:hover,
+#context-dict-suggestions li.disabled:focus {
+    background-color: #e9ecef; /* Ensure hover/focus does not change appearance */
+    color: #adb5bd;
+    outline: none; /* Remove focus outline for disabled items */
 }

@@ -1,4 +1,12 @@
 let popup = null;
+
+// Listen for copy events
+document.addEventListener('copy', () => {
+  const selectedText = window.getSelection().toString().trim();
+  if (selectedText) {
+    chrome.runtime.sendMessage({ action: 'storeCopiedText', text: selectedText });
+  }
+});
 let selectedText = "";
 let contextText = "";
 
@@ -1119,6 +1127,10 @@ function displayContexts() {
     if (isSelected) {
       li.classList.add("selected");
     }
+    if (context.disabled) {
+      li.classList.add("disabled");
+      li.title = context.tooltip || "此选项不可用";
+    }
     li.dataset.contextId = context.id;
     li.innerHTML = `
             <span class="material-icons suggestion-icon">${context.icon}</span>
@@ -1130,7 +1142,9 @@ function displayContexts() {
             }
         `;
     li.addEventListener("click", () => {
-      toggleContextSelection(context);
+      if (!context.disabled) {
+        toggleContextSelection(context);
+      }
     });
     suggestionsList.appendChild(li);
   });
@@ -1144,8 +1158,8 @@ let selectedContexts = []; // Store selected context objects
 // Define available contexts
 const availableContexts = [
   { id: "currentPage", name: "当前网页", icon: "description" },
-  { id: "history", name: "浏览记录", icon: "history" },
-  { id: "bookmarks", name: "书签", icon: "bookmark_border" },
+  { id: "history", name: "浏览记录", icon: "history", disabled: true, tooltip: "功能暂未开放" },
+  { id: "bookmarks", name: "书签", icon: "bookmark_border", disabled: true, tooltip: "功能暂未开放" },
 ];
 
 // Function to create the search popup
@@ -1155,30 +1169,37 @@ class SearchPopupManager {
     this.searchInput = null;
     this.suggestionsList = null;
     this.tagsContainer = null;
-    this.mockSuggestions = window.mockSuggestions || []; // Example initialization
-    // Assuming selectedContexts and isContextSelectionMode are managed globally or passed
+    this.selectedSuggestionIndex = -1; // Added for keyboard navigation
+    // selectedContexts and isContextSelectionMode are managed globally
   }
 
   createSearchPopup() {
     if (this.popup) {
-      // Return existing popup and potentially bound methods if needed
-      // The original code returned displayContexts.bind(this) here, which seems incorrect
-      // as displayContexts appears to be a global function.
-      // Let's return the element for now, consistent with the goal of creating/retrieving the popup.
       return {
         element: this.popup,
-        // If other methods need to be returned here, bind them:
-        // performSearch: this.performSearch.bind(this),
-        // toggleContextSelection: this.toggleContextSelection.bind(this)
+        performSearch: this.performSearch.bind(this),
+        toggleContextSelection: this.toggleContextSelection.bind(this),
       };
     }
 
-    // Ensure Material Icons font is loaded
     if (!document.querySelector('link[href*="material-icons"]')) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";
       document.head.appendChild(link);
+    }
+
+    // Inject CSS for selected suggestion item
+    const styleId = 'context-dict-selected-suggestion-style';
+    if (!document.getElementById(styleId)) {
+        const styleElement = document.createElement('style');
+        styleElement.id = styleId;
+        styleElement.textContent = `
+            #context-dict-suggestions .suggestion-item.selected-suggestion {
+                background-color: #e0e0e0; /* Light grey background for selected item */
+            }
+        `;
+        document.head.appendChild(styleElement);
     }
 
     this.popup = document.createElement("div");
@@ -1195,19 +1216,15 @@ class SearchPopupManager {
         `;
     document.body.appendChild(this.popup);
 
-    // 存储DOM元素引用
     this.searchInput = this.popup.querySelector("#context-dict-search-input");
-    this.suggestionsList = this.popup.querySelector(
-      "#context-dict-suggestions"
-    );
+    this.suggestionsList = this.popup.querySelector("#context-dict-suggestions");
     this.tagsContainer = this.popup.querySelector(".context-tags-container");
+    this.isFillingFromSuggestion = false; // Initialize the flag
 
     this.setupEventListeners();
 
-    // Return the element and correctly bound methods
     return {
       element: this.popup,
-      // displayContexts is likely global, not bound here
       performSearch: this.performSearch.bind(this),
       toggleContextSelection: this.toggleContextSelection.bind(this),
     };
@@ -1220,34 +1237,140 @@ class SearchPopupManager {
         return;
     }
     this.suggestionsList.innerHTML = "";
-    suggestions.forEach((item) => {
-      const li = document.createElement("li");
-      li.className = "suggestion-item";
-      let icon = "work";
-      if (item.type === "contact") icon = "chat";
-      else if (item.url.includes("github")) icon = "code";
+    this.selectedSuggestionIndex = -1; // Reset selected index
 
-      li.innerHTML = `
-              <span class="material-icons suggestion-icon">${icon}</span>
-              <span class="suggestion-text">${item.title}</span>
-          `;
-      li.addEventListener("click", () => {
-        this.searchInput.value = item.title;
-        this.searchInput.focus();
+    if (!suggestions || suggestions.length === 0) {
         this.suggestionsList.style.display = "none";
-      });
-      this.suggestionsList.appendChild(li);
+        console.log('[displaySuggestions] No suggestions, hiding list.');
+        return;
+    }
+
+    suggestions.forEach((item, index) => { // Added index parameter
+        if (item && typeof item.title === 'string' && typeof item.icon === 'string') {
+            const li = document.createElement("li");
+            li.className = "suggestion-item";
+            li.dataset.index = index; // Add data-index for identification
+            li.innerHTML = `
+                <span class="material-icons suggestion-icon">${item.icon}</span>
+                <span class="suggestion-text">${item.title}</span>
+            `;
+            li.addEventListener("click", () => {
+                this.searchInput.value = item.title;
+                this.searchInput.focus();
+                this.suggestionsList.style.display = "none";
+                this.selectedSuggestionIndex = -1; // Reset on click
+                // Future: if (item.url && (item.type === 'bookmark' || item.type === 'history')) { chrome.tabs.create({ url: item.url }); }
+            });
+            this.suggestionsList.appendChild(li);
+        } else {
+            console.warn('[displaySuggestions] Skipping invalid item:', item);
+        }
     });
-    const displayStyle = suggestions.length > 0 ? "block" : "none";
-    console.log(`[displaySuggestions] Setting display to: ${displayStyle}`);
-    this.suggestionsList.style.display = displayStyle;
+    this.suggestionsList.style.display = "block";
+    this.highlightSuggestion(this.selectedSuggestionIndex); // Initial highlight (none)
+    console.log(`[displaySuggestions] Setting display to: block`);
+  }
+
+  highlightSuggestion(index) {
+    if (!this.suggestionsList) return;
+    const items = this.suggestionsList.querySelectorAll('.suggestion-item');
+    items.forEach((item, idx) => {
+        if (idx === index) {
+            item.classList.add('selected-suggestion');
+            // Scroll into view if needed
+            item.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        } else {
+            item.classList.remove('selected-suggestion');
+        }
+    });
+  }
+  
+  async fetchAllSuggestionsAndUpdateDisplay(query = '') {
+    if (isContextSelectionMode) { // Global variable
+        if (this.suggestionsList) this.suggestionsList.style.display = 'none';
+        return;
+    }
+
+    const lowerCaseQuery = query.toLowerCase();
+    let allSuggestions = [];
+
+    try {
+        const results = await Promise.allSettled([
+            new Promise((resolve) => {
+                chrome.runtime.sendMessage({ action: 'getCopiedTexts' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error("Error fetching copied texts:", chrome.runtime.lastError.message);
+                        resolve([]); return;
+                    }
+                    if (response && response.success && Array.isArray(response.data)) {
+                        resolve(response.data.map(text => ({ title: String(text), type: 'copied', icon: 'content_paste' })));
+                    } else {
+                        resolve([]);
+                    }
+                });
+            }),
+            new Promise((resolve) => {
+                chrome.runtime.sendMessage({ action: 'getBookmarks', query: query }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error("Error fetching bookmarks:", chrome.runtime.lastError.message);
+                        resolve([]); return;
+                    }
+                    if (response && response.success && Array.isArray(response.data)) {
+                        resolve(response.data.map(bm => ({ title: String(bm.title || bm.url), url: bm.url, type: 'bookmark', icon: 'bookmark' })));
+                    } else {
+                        resolve([]);
+                    }
+                });
+            }),
+            new Promise((resolve) => {
+                chrome.runtime.sendMessage({ action: 'getHistory', query: query }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error("Error fetching history:", chrome.runtime.lastError.message);
+                        resolve([]); return;
+                    }
+                    if (response && response.success && Array.isArray(response.data)) {
+                        resolve(response.data.map(h => ({ title: String(h.title || h.url), url: h.url, type: 'history', icon: 'history' })));
+                    } else {
+                        resolve([]);
+                    }
+                });
+            })
+        ]);
+
+        results.forEach(result => {
+            if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+                allSuggestions.push(...result.value);
+            } else if (result.status === 'rejected') {
+                console.error("A suggestion promise was rejected:", result.reason);
+            }
+        });
+        
+        let filteredSuggestions = allSuggestions;
+        if (query.trim() !== '') { 
+            filteredSuggestions = allSuggestions.filter(item =>
+                item.title && item.title.toLowerCase().includes(lowerCaseQuery)
+            );
+        } 
+        
+        const uniqueSuggestions = [];
+        const seenTitles = new Set();
+        for (const item of filteredSuggestions) {
+            if (item.title && !seenTitles.has(item.title)) { 
+                uniqueSuggestions.push(item);
+                seenTitles.add(item.title);
+            }
+        }
+        this.displaySuggestions(uniqueSuggestions.slice(0, 15));
+    } catch (error) {
+        console.error("Error in fetchAllSuggestionsAndUpdateDisplay:", error);
+        this.displaySuggestions([]);
+    }
   }
 
   updateContextTags() {
     if (!this.tagsContainer || !this.searchInput) return;
-    // Assuming selectedContexts and isContextSelectionMode are global
     this.tagsContainer.innerHTML = "";
-    selectedContexts.forEach((context) => {
+    selectedContexts.forEach((context) => { // Global variable
       const tag = document.createElement("div");
       tag.className = "context-tag";
       tag.innerHTML = `
@@ -1257,16 +1380,16 @@ class SearchPopupManager {
           `;
       tag.querySelector(".remove-tag-btn").addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggleContextSelection(context); // Call the class method
+        this.toggleContextSelection(context);
       });
       this.tagsContainer.appendChild(tag);
     });
-    if (selectedContexts.length > 0) {
-      this.searchInput.placeholder = isContextSelectionMode
+    if (selectedContexts.length > 0) { // Global variable
+      this.searchInput.placeholder = isContextSelectionMode // Global variable
         ? "按 Tab 输入搜索内容..."
         : "输入搜索内容...";
     } else {
-      this.searchInput.placeholder = isContextSelectionMode
+      this.searchInput.placeholder = isContextSelectionMode // Global variable
         ? "选择上下文后按 Tab 输入搜索内容..."
         : "输入搜索内容...";
     }
@@ -1274,156 +1397,164 @@ class SearchPopupManager {
 
   toggleContextSelection(context) {
     if (!this.searchInput) return;
-    // Assuming selectedContexts and displayContexts are global
-    const index = selectedContexts.findIndex((sc) => sc.id === context.id);
-    if (index > -1) {
-      selectedContexts.splice(index, 1);
-    } else {
-      selectedContexts.push(context);
+    if (context.disabled) {
+      return;
     }
-    this.updateContextTags(); // Call the class method
-    displayContexts(); // Call the global function
+    const index = selectedContexts.findIndex((sc) => sc.id === context.id); // Global variable
+    if (index > -1) {
+      selectedContexts.splice(index, 1); // Global variable
+    } else {
+      selectedContexts.push(context); // Global variable
+    }
+    this.updateContextTags();
+    displayContexts(); // Global function
     this.searchInput.focus();
   }
 
   switchToSearchMode() {
     if (!this.suggestionsList || !this.searchInput) return;
-    // Assuming isContextSelectionMode and selectedContexts are global
-    isContextSelectionMode = false;
-    this.suggestionsList.innerHTML = "";
-    this.suggestionsList.style.display = "none";
+    isContextSelectionMode = false; // Global variable
     this.searchInput.placeholder =
-      selectedContexts.length > 0 ? "输入搜索内容..." : "输入搜索内容...";
+      selectedContexts.length > 0 ? "输入搜索内容..." : "输入搜索内容..."; // Global variable
     this.searchInput.focus();
+    this.fetchAllSuggestionsAndUpdateDisplay(this.searchInput.value);
   }
 
   performSearch(term) {
-    // Assuming selectedContexts and hideSearchPopup are global
     if (!term) return;
     console.log(
       "Performing search for:",
       term,
       "with contexts:",
-      selectedContexts.map((c) => c.name)
+      selectedContexts.map((c) => c.name) // Global variable
     );
-
-    // Check for API key and endpoint before proceeding
     chrome.storage.sync.get(['apiKey', 'apiEndpoint'], (settings) => {
       if (!settings.apiKey || !settings.apiEndpoint) {
         console.error("API Key or Endpoint not set.");
-        // Show error using the main popup mechanism
-        showLoadingPopup(term, "search"); // Initialize the main popup
+        showLoadingPopup(term, "search"); // Global function
         const mainPopup = document.getElementById("context-dict-popup");
         if (mainPopup) {
-            showErrorInPopup(mainPopup, "错误：请先在扩展设置中配置 API Key 和 Endpoint");
+            showErrorInPopup(mainPopup, "错误：请先在扩展设置中配置 API Key 和 Endpoint"); // Global function
         }
-        hideSearchPopup(); // Hide the search popup
+        hideSearchPopup(); // Global function
       } else {
-        // API settings are present, proceed with the search/explanation
-        // Reuse the existing showLoadingPopup function for explanation
-        showLoadingPopup(term, "search");
-        hideSearchPopup(); // Hide the search popup after initiating the loading popup
+        showLoadingPopup(term, "search"); // Global function
+        hideSearchPopup(); // Global function
       }
     });
-
-    // Note: hideSearchPopup() is now called conditionally within the callback
-    // hideSearchPopup(); // Call the global function - Moved inside callback
   }
 
   setupEventListeners() {
     if (!this.searchInput || !this.suggestionsList) return;
-    // Assuming isContextSelectionMode, hideSearchPopup, handleClickOutsideSearchPopup are global
 
     this.searchInput.addEventListener("input", (e) => {
-      const query = e.target.value.toLowerCase();
-
-      // 当输入框清空时，切换回上下文选择模式
-      if (query === '') {
-        if (!isContextSelectionMode) {
-          console.log('[Input Event] Input cleared. Switching back to context selection mode.');
-          isContextSelectionMode = true;
-          displayContexts(); // 重新显示上下文列表
-          this.updateContextTags(); // 更新标签和占位符
-          this.suggestionsList.style.display = 'block'; // 确保建议列表（现在是上下文列表）可见
-        }
-        return; // 清空时不进行搜索建议过滤
+      if (this.isFillingFromSuggestion) {
+        this.isFillingFromSuggestion = false; // Reset flag after it's been checked
+        return; // Skip processing for this specific input event
       }
+      const query = e.target.value;
 
-      // 只有在搜索模式下才显示搜索建议
-      if (isContextSelectionMode) {
+      if (query === '') {
+        if (!isContextSelectionMode) { // Global variable
+          console.log('[Input Event] Input cleared. Switching back to context selection mode.');
+          isContextSelectionMode = true; // Global variable
+          displayContexts(); // Global function, to show context items as suggestions
+          this.updateContextTags();
+        } 
+        // When input is cleared, hide specific copied text suggestions or show contexts
+        // If in context mode, displayContexts() handles it.
+        // If it was search mode and cleared, it switches to context mode.
+        // To show all copied texts when input is empty in search mode (before switching):
+        // else { this.fetchAndDisplayCopiedTextSuggestions(); }
         return;
       }
 
-      // Use this.mockSuggestions if it's an instance property
-      const filteredSuggestions = this.mockSuggestions.filter((item) =>
-        item.title.toLowerCase().includes(query)
-      );
-      this.displaySuggestions(filteredSuggestions); // Call the class method
+      if (isContextSelectionMode) { // Global variable
+        // If user starts typing while in context selection mode, switch to search mode
+        console.log(`[Input Event] Typing in context mode. Query: '${query}'. Switching...`);
+        this.switchToSearchMode(); 
+        // The character will be in the input, and switchToSearchMode will call fetchAndDisplayCopiedTextSuggestions
+        // which will then use the current input value (the typed character).
+        return; 
+      }
+      
+      // In search mode, fetch and display suggestions based on input
+      this.fetchAllSuggestionsAndUpdateDisplay(query);
+    });
+
+    this.searchInput.addEventListener("focus", () => {
+        if (this.popup.style.display === 'none') return; // Don't do anything if popup is hidden
+
+        if (!isContextSelectionMode) { // Global variable
+            this.fetchAllSuggestionsAndUpdateDisplay(this.searchInput.value);
+        } else {
+            displayContexts(); // Global function, show context items when focusing in context mode
+        }
     });
 
     this.searchInput.addEventListener("keydown", (e) => {
-      // Handle printable characters in context selection mode
-      if (isContextSelectionMode && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        // Allow space for potential future use, but currently it switches mode
-        // if (e.key === ' ') {
-        //   e.preventDefault(); // Prevent space from typing if needed
-        //   // Potentially handle space differently, e.g., select/deselect context
-        //   return;
-        // }
-
-        // Switch to search mode and input the character
+      if (isContextSelectionMode && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) { // Global variable
         console.log(`[Keydown] Printable key '${e.key}' pressed in context mode. Switching...`);
         this.switchToSearchMode();
-        // Do not set the value immediately, let the default input handle it
-        // this.searchInput.value = e.key; // Set input value to the pressed key
-        // // Optional: Trigger suggestions immediately based on the single character
-        // const query = this.searchInput.value.toLowerCase();
-        // const filteredSuggestions = mockSuggestions.filter((item) =>
-        //   item.title.toLowerCase().includes(query)
-        // );
-        // this.displaySuggestions(filteredSuggestions);
-        // e.preventDefault(); // Prevent the character from being typed *again* after mode switch
-        // return; // Stop further processing for this keydown event
+        return; 
       }
 
-      // Existing keydown logic
       if (e.key === "Escape") {
-        hideSearchPopup();
+        hideSearchPopup(); // Global function
       } else if (e.key === 'Tab') {
-        if (isContextSelectionMode) {
-          e.preventDefault();
-          console.log('[Tab Keydown] Switching to search mode...');
-          this.switchToSearchMode(); // Call the class method
-          // Immediately display suggestions after switching to search mode
-          const query = this.searchInput.value.toLowerCase();
-          console.log(`[Tab Keydown] Switched. Mode: ${isContextSelectionMode}, Query: '${query}'`);
-          const filteredSuggestions = mockSuggestions.filter((item) =>
-            item.title.toLowerCase().includes(query)
-          );
-          console.log(`[Tab Keydown] Filtered suggestions count: ${filteredSuggestions.length}`);
-          this.displaySuggestions(filteredSuggestions);
+        e.preventDefault();
+        if (isContextSelectionMode) { // Global variable
+          console.log('[Tab Keydown] Context mode. Switching to search mode...');
+          this.switchToSearchMode();
         } else {
-          // Prevent default Tab behavior (moving focus)
-          e.preventDefault();
-          // Trigger suggestions when Tab is pressed in search mode
-          const query = this.searchInput.value.toLowerCase();
-          // Access the global mockSuggestions
-          console.log(`[Tab Keydown] Search mode. Query: '${query}'`);
-          const filteredSuggestions = mockSuggestions.filter((item) =>
-            item.title.toLowerCase().includes(query)
-          );
-          console.log(`[Tab Keydown] Filtered suggestions count: ${filteredSuggestions.length}`);
-          console.log(`[Tab Keydown] Search mode. Filtered suggestions count: ${filteredSuggestions.length}`);
-          this.displaySuggestions(filteredSuggestions);
+          console.log('[Tab Keydown] Search mode. Refreshing suggestions...');
+          // If suggestions are visible and there's a selected one, Tab could also select it.
+          // For now, it just refreshes.
+          this.fetchAllSuggestionsAndUpdateDisplay(this.searchInput.value);
+        }
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (this.suggestionsList.style.display === 'block') {
+            e.preventDefault();
+            const items = this.suggestionsList.querySelectorAll('.suggestion-item');
+            if (items.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    this.selectedSuggestionIndex = (this.selectedSuggestionIndex + 1) % items.length;
+                } else { // ArrowUp
+                    this.selectedSuggestionIndex = (this.selectedSuggestionIndex - 1 + items.length) % items.length;
+                }
+                this.highlightSuggestion(this.selectedSuggestionIndex);
+            }
         }
       } else if (e.key === 'Enter') {
-        if (!isContextSelectionMode) {
-          const searchTerm = this.searchInput.value.trim();
-          this.performSearch(searchTerm); // Call the class method
+        if (!isContextSelectionMode) { // Global variable
+            e.preventDefault(); // Prevent default action for Enter early
+
+            const currentSuggestionIndex = this.selectedSuggestionIndex;
+            const suggestionsVisible = this.suggestionsList.style.display === 'block';
+            const items = this.suggestionsList.querySelectorAll('.suggestion-item');
+
+            if (currentSuggestionIndex > -1 && currentSuggestionIndex < items.length && suggestionsVisible) {
+                const selectedItem = items[currentSuggestionIndex];
+                const selectedText = selectedItem.querySelector('.suggestion-text').textContent;
+
+                this.isFillingFromSuggestion = true; // Set flag before changing value
+                this.searchInput.value = selectedText;
+                // The input event handler will now check and reset this.isFillingFromSuggestion
+                this.suggestionsList.style.display = 'none';
+                this.selectedSuggestionIndex = -1; // Reset selected index
+                this.searchInput.focus(); // Ensure input remains focused
+                // No search is performed when a suggestion is selected by Enter.
+                return; // Crucial: Prevent fall-through to search logic.
+            } else {
+                // No suggestion selected or suggestions not visible, perform search from input
+                const searchTerm = this.searchInput.value.trim();
+                if (searchTerm) {
+                    this.performSearch(searchTerm);
+                }
+            }
         }
       }
     });
-
   }
 }
 
@@ -1441,9 +1572,6 @@ function showSearchPopup(rect, hasSelection) {
   selectedContexts = [];
   searchPopupManager.updateContextTags();
   searchInput.value = '';
-
-  // 定位弹窗
-  positionSearchPopup(searchPopup, rect);
 
   // 显示弹窗
   searchPopup.style.display = 'block';
@@ -1464,51 +1592,6 @@ function showSearchPopup(rect, hasSelection) {
 
   // 添加点击外部关闭的监听器
   document.addEventListener('click', handleClickOutsideSearchPopup, true);
-}
-
-// Helper function to position the search popup
-function positionSearchPopup(popup, rect, hasSelection) {
-  if (!popup) return;
-
-  // Always rely on CSS for positioning
-  // Remove dynamic style setting based on hasSelection
-  /*
-  if (hasSelection) {
-    // Position near the selection
-    const popupWidth = popup.offsetWidth || 500; // Use estimated width if offsetWidth is 0
-    const popupHeight = popup.offsetHeight || 300; // Use estimated height if offsetHeight is 0
-    const margin = 10;
-    let top = rect.bottom + margin + window.scrollY;
-    let left = rect.left + window.scrollX;
-
-    // Adjust if popup goes off-screen vertically
-    if (top + popupHeight > window.innerHeight + window.scrollY) {
-      top = rect.top - popupHeight - margin + window.scrollY;
-    }
-    // Ensure top is not negative
-    if (top < window.scrollY) {
-        top = window.scrollY + margin;
-    }
-
-    // Adjust if popup goes off-screen horizontally
-    if (left + popupWidth > window.innerWidth + window.scrollX) {
-      left = window.innerWidth + window.scrollX - popupWidth - margin;
-    }
-    if (left < window.scrollX) {
-      left = window.scrollX + margin;
-    }
-
-    popup.style.top = `${top}px`;
-    popup.style.left = `${left}px`;
-    popup.style.transform = 'none'; // Reset transform when positioning near selection
-
-  } else {
-    // Center the popup if no selection (use CSS defaults)
-    popup.style.top = ''; // Let CSS handle 'top: 20vh'
-    popup.style.left = ''; // Let CSS handle 'left: 50%'
-    popup.style.transform = ''; // Let CSS handle 'transform: translateX(-50%)'
-  }
-  */
 }
 
 // Function to hide the search popup
@@ -1550,38 +1633,6 @@ function handleClickOutsideSearchPopup(event) {
   }
 }
 
-// Position the search popup
-/*
-function positionSearchPopup(popup, rect, hasSelection) {
-  if (!popup || !rect) return;
-
-  if (hasSelection) {
-    // Position relative to selection
-    popup.style.position = "absolute";
-    popup.style.left = `${window.scrollX + rect.left}px`;
-    popup.style.top = `${window.scrollY + rect.bottom + 5}px`; // Position below selection
-
-    // Adjust if it goes off-screen (relative positioning)
-    const popupRect = popup.getBoundingClientRect();
-    if (popupRect.right > window.innerWidth) {
-      popup.style.left = `${window.scrollX + window.innerWidth - popupRect.width - 10}px`;
-    }
-    if (popupRect.bottom > window.innerHeight) {
-      popup.style.top = `${window.scrollY + rect.top - popupRect.height - 5}px`; // Position above selection
-    }
-  } else {
-    // Position fixed in the center if no selection
-    popup.style.position = "fixed";
-    popup.style.left = "50%";
-    popup.style.top = "50%";
-    popup.style.transform = "translate(-50%, -50%)";
-    // Optionally set a max width/height or use default CSS styles
-    popup.style.maxWidth = "90vw";
-    popup.style.maxHeight = "80vh";
-  }
-}
-*/
-
 // Mock data for search suggestions (replace with actual API call)
 const mockSuggestions = [
   { title: "Document A", type: "work", url: "/docs/a" },
@@ -1605,14 +1656,26 @@ function displayContexts() {
     if (isSelected) {
       li.classList.add("selected");
     }
-    // Removed the checkbox span, using classes for styling selection state
+
+    if (context.disabled) {
+      li.classList.add("disabled");
+      li.title = context.tooltip || "此选项当前不可用"; // Add a tooltip for disabled items
+    }
+
+    // li.innerHTML = `
+    //         <span class="material-icons suggestion-icon">${context.icon}</span>
+    //         <span class="suggestion-text">${context.name}</span>
+    //         ${isSelected ? '<span class="material-icons suggestion-selected-indicator">check</span>' : ''}
+    //     `;
     li.innerHTML = `
             <span class="material-icons suggestion-icon">${context.icon}</span>
             <span class="suggestion-text">${context.name}</span>
-            ${isSelected ? '<span class="material-icons suggestion-selected-indicator">check</span>' : ''}
         `;
     li.addEventListener("click", () => {
-      searchPopupManager.toggleContextSelection(context); // Use the instance method
+      // Only allow toggling if the context is not disabled
+      if (!context.disabled) {
+        searchPopupManager.toggleContextSelection(context); // Use the instance method
+      }
     });
     searchPopupManager.suggestionsList.appendChild(li);
   });
